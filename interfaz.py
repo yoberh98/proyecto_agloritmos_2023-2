@@ -1,86 +1,108 @@
 import tkinter as tk
 from tkinter import ttk
 import numpy as np
+from sympy import symbols, sympify, diff
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+import funciones as fn
 
-def graficar(ecuacion, x_vals, y_vals):
-    plt.clf()
-    plt.plot(x_vals, y_vals, label=ecuacion)
-    plt.axhline(0, color='black', linewidth=0.5)
-    plt.axvline(0, color='black', linewidth=0.5)
-    plt.legend()
+
+def plot_ecuacion(ecuacion, x_vals, puntos=None, ecu_der=None):
+    y_vals = [ecuacion.subs('x', val) for val in x_vals]
+
+    plt.cla()
+    plt.plot(x_vals, y_vals)
+
+    if puntos:
+        x_puntos, y_puntos = zip(*puntos)
+        plt.scatter(x_puntos, y_puntos, color='red')
+
+    if ecu_der:
+        y_vals = [ecu_der.subs('x', val) for val in x_vals]
+        plt.plot(x_vals, y_vals)
+
+    plt.title("Grafica de la ecuacion con puntos Dados")
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.grid(True)
+    plt.axhline(0, color='black', linewidth='1')
+    plt.axvline(0, color='black', linewidth='1')
+
     canvas.draw()
 
-def metodo_biseccion(ecuacion, a, b, error):
-    iteraciones = []
-    resultados = []
 
-    fa = eval(ecuacion.replace('x', str(a)))
-    fb = eval(ecuacion.replace('x', str(b)))
+def graficar():
+    ecuacion_str = ecuacion_entry.get()
+    x = symbols('x')
+    ecuacion = sympify(ecuacion_str)
+    selec = metodo_combobox.get()
 
-    if fa * fb > 0:
-        resultados.append("No hay cambio de signo en el intervalo.")
-        return iteraciones, resultados
+    punto1 = float(a_entry.get())
+    punto2 = float(b_entry.get())
 
-    iteracion = 0
-    while (b - a) / 2 > error:
-        c = (a + b) / 2
-        fc = eval(ecuacion.replace('x', str(c)))
+    rango1 = punto1 - 5
+    rango2 = punto2 + 5
 
-        iteraciones.append(f"Iteración {iteracion}: [{a}, {b}], c = {c:.5f}, f(c) = {fc:.5f}")
+    puntos = [(punto1, 0), (punto2, 0)]
 
-        if abs(fc) < error:
-            resultados.append(f"Error: {error:.5f}\nNúmero de iteraciones: {iteracion}\nRaíz encontrada: {c:.5f}")
-            break
+    rango_x = np.arange(rango1, rango2, 0.1)
+    if selec == "Newton-Raphson":
+        ecu_der = diff(ecuacion, x)
+        plot_ecuacion(ecuacion, rango_x, puntos, ecu_der)
+    else:
+        plot_ecuacion(ecuacion, rango_x, puntos)
 
-        if fa * fc < 0:
-            b = c
-            fb = fc
-        else:
-            a = c
-            fa = fc
-
-        iteracion += 1
-
-    # Añadir la última iteración y resultados si la condición de error se cumple
-    iteraciones.append(f"Iteración {iteracion}: [{a}, {b}], c = {c:.5f}, f(c) = {fc:.5f}")
-    resultados.append(f"Error: {error:.5f}\nNúmero de iteraciones: {iteracion}\nRaíz encontrada: {c:.5f}")
-
-    return iteraciones, resultados
 
 def emular_calculo():
     ecuacion = ecuacion_entry.get()
     a = float(a_entry.get())
     b = float(b_entry.get())
     error = float(error_entry.get())
-    metodo_combobox.set("Bisección")
+    selec = metodo_combobox.get()
 
-    iteraciones, resultados = metodo_biseccion(ecuacion, a, b, error)
+    if selec == "Biseccion":
+        iteraciones, resultados = fn.metodo_biseccion(ecuacion, a, b, error)
+
+    if selec == "Secante":
+        iteraciones, resultados = fn.metodo_secante(ecuacion, a, b, error)
+
+    if selec == "Falsa Posicion":
+        iteraciones, resultados = fn.metodo_falsa_posicion(
+            ecuacion, a, b, error)
+
+    if selec == "Newton-Raphson":
+        iteraciones, resultados = fn.metodo_new(
+            ecuacion, a, b, error)
 
     iteraciones_text_widget.delete("1.0", tk.END)
     iteraciones_text_widget.insert(tk.END, "\n".join(iteraciones))
     resultados_text_widget.delete("1.0", tk.END)
     resultados_text_widget.insert(tk.END, "\n".join(resultados))
-    
+
     emular_iteraciones()
     emular_resultados()
+    graficar()
+
 
 def emular_iteraciones():
     iteraciones_frame.update_idletasks()
 
+
 def emular_resultados():
     resultados_frame.update_idletasks()
 
+
 ventana = tk.Tk()
 ventana.title("Calculadora Numérica")
+ventana.resizable(False, False)
 
 # Configuración de la interfaz
-tk.Label(ventana, text="Ecuación:").grid(row=0, column=0, sticky="e")
+tk.Label(ventana, text="Ecuación:").grid(row=0, column=0, sticky="w")
 ecuacion_entry = tk.Entry(ventana)
-ecuacion_entry.grid(row=0, column=1, columnspan=3)
+ecuacion_entry.grid(row=0, column=1, columnspan=3, sticky="w")
 
-tk.Label(ventana, text="Punto izquierdo (a):").grid(row=1, column=0, sticky="e")
+tk.Label(ventana, text="Punto izquierdo (a):").grid(
+    row=1, column=0, sticky="e")
 a_entry = tk.Entry(ventana, width=10)
 a_entry.grid(row=1, column=1)
 
@@ -92,34 +114,47 @@ tk.Label(ventana, text="Error estimado:").grid(row=1, column=4, sticky="e")
 error_entry = tk.Entry(ventana, width=10)
 error_entry.grid(row=1, column=5)
 
-tk.Label(ventana, text="Método numérico:").grid(row=2, column=0, sticky="e")
+tk.Label(ventana, text="Método numérico:").grid(row=2, column=0, sticky="w")
 metodo_var = tk.StringVar()
-metodo_combobox = ttk.Combobox(ventana, textvariable=metodo_var, values=["Bisección", "Secante", "Falsa Posición", "Newton-Raphson"])
-metodo_combobox.grid(row=2, column=1, columnspan=2)
+metodo_var.set("Biseccion")
+metodo_combobox = ttk.Combobox(ventana, textvariable=metodo_var, values=[
+                               "Biseccion", "Secante", "Falsa Posicion", "Newton-Raphson"], state="readonly")
+metodo_combobox.grid(row=2, column=1, columnspan=2, sticky="w")
 
-calcular_button = tk.Button(ventana, text="Emular Cálculo", command=emular_calculo)
+calcular_button = tk.Button(
+    ventana, text="Emular Cálculo", command=emular_calculo)
 calcular_button.grid(row=2, column=3, columnspan=3)
 
 # Configuración de la columna para mostrar la gráfica, iteraciones y resultados
 fig, ax = plt.subplots()
 canvas = FigureCanvasTkAgg(fig, master=ventana)
 widget_canvas = canvas.get_tk_widget()
-widget_canvas.grid(row=3, column=6, rowspan=3, sticky="e")
+widget_canvas.grid(row=3, column=6, rowspan=3, sticky="w")
+
+toolbar_frame = tk.Frame(ventana)
+toolbar = NavigationToolbar2Tk(canvas, toolbar_frame)
+toolbar.update()
+
+toolbar_frame.grid(row=6, column=6, columnspan=2, sticky="we")
 
 # Frame para las iteraciones
 iteraciones_frame = ttk.LabelFrame(ventana, text="Iteraciones")
-iteraciones_frame.grid(row=4, column=0, columnspan=6, padx=10, pady=10, sticky="w")  # Movido debajo de los inputs
+iteraciones_frame.grid(row=4, column=0, columnspan=6, padx=10,
+                       pady=10, sticky="w")  # Movido debajo de los inputs
 
 # Widget Text para mostrar iteraciones
-iteraciones_text_widget = tk.Text(iteraciones_frame, wrap="none", height=10, width=50)
+iteraciones_text_widget = tk.Text(
+    iteraciones_frame, wrap="none", height=10, width=60)
 iteraciones_text_widget.pack(expand=True, fill='both')
 
 # Frame para los resultados
 resultados_frame = ttk.LabelFrame(ventana, text="Resultados")
-resultados_frame.grid(row=5, column=0, columnspan=6, padx=10, pady=10, sticky="w")  # Movido debajo de los inputs
+resultados_frame.grid(row=5, column=0, columnspan=6, padx=10,
+                      pady=10, sticky="w")  # Movido debajo de los inputs
 
 # Widget Text para mostrar resultados
-resultados_text_widget = tk.Text(resultados_frame, wrap="none", height=10, width=50)
+resultados_text_widget = tk.Text(
+    resultados_frame, wrap="none", height=10, width=60)
 resultados_text_widget.pack(expand=True, fill='both')
 
 ventana.mainloop()
