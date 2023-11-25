@@ -5,8 +5,7 @@ from sympy import symbols, sympify, diff
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import funciones as fn
-import pandas as pd
-
+import documentacion as dc
 
 def emular_calculo():
     graficar()
@@ -15,16 +14,14 @@ def emular_calculo():
     b = float(b_entry.get())
     error = float(error_entry.get())
     selec = metodo_combobox.get()
-    if selec == "Biseccion":
+    if selec=="Biseccion":
         iteraciones, resultados = fn.metodo_biseccion(ecuacion, a, b, error)
-    if selec == "Secante":
+    if selec=="Secante":
         iteraciones, resultados = fn.metodo_secante(ecuacion, a, b, error)
-    if selec == "Falsa Posicion":
-        iteraciones, resultados = fn.metodo_falsa_posicion(
-            ecuacion, a, b, error)
-    if selec == "Newton-Raphson":
-        iteraciones, resultados = fn.metodo_newtom_raphson(
-            ecuacion, a, b, error)
+    if selec=="Falsa Posicion":
+        iteraciones, resultados = fn.metodo_falsa_posicion(ecuacion, a, b, error)
+    if selec=="Newton-Raphson":
+        iteraciones, resultados = fn.metodo_newtom_raphson(ecuacion, a, b, error)
 
     historial.append({
         'ecuacion': ecuacion,
@@ -52,18 +49,26 @@ def emular_resultados():
 
 
 def plot_ecuacion(ecuacion, x_vals, puntos=None, der_ecuacion=None, rango_x=(-10, 10), paso=0.1):
-    y_vals = [ecuacion.subs('x', val) for val in x_vals]
+    # y_vals = [ecuacion.subs('x', val) for val in x_vals]
+    y_vals = [complex(ecuacion.subs('x', val)) for val in x_vals]
 
     plt.cla()
-    plt.plot(x_vals, y_vals)
+    # plt.plot(x_vals, y_vals)
+    plt.plot(x_vals, np.real(y_vals), label='Parte Real')
 
     if puntos:
         x_puntos, y_puntos = zip(*puntos)
         plt.scatter(x_puntos, y_puntos, color='red')
 
     if der_ecuacion:
-        y_vals = [der_ecuacion.subs('x', val) for val in x_vals]
-        plt.plot(x_vals, y_vals)
+        # y_vals = [der_ecuacion.subs('x', val) for val in x_vals]
+        # plt.plot(x_vals, y_vals)
+
+        y_vals_der = [complex(der_ecuacion.subs('x', val)) for val in x_vals]
+        plt.plot(x_vals, np.real(y_vals_der), label='Derivada - Parte Real')
+
+        if np.any(np.imag(y_vals_der)):
+            plt.plot(x_vals, np.imag(y_vals_der), label='Derivada - Parte Imaginaria')
 
     plt.title("Gráfica de la Ecuación con Puntos Dados")
     plt.xlabel("x")
@@ -74,12 +79,11 @@ def plot_ecuacion(ecuacion, x_vals, puntos=None, der_ecuacion=None, rango_x=(-10
 
     canvas.draw()
 
-
 def graficar():
     ecuacion_str = ecuacion_entry.get()
     x = symbols("x")
     ecuacion = sympify(ecuacion_str)
-    selec = metodo_combobox.get()
+    selec = metodo_combobox.get()  
 
     punto1 = float(a_entry.get())
     punto2 = float(b_entry.get())
@@ -89,13 +93,12 @@ def graficar():
     puntos = [(punto1, 0), (punto2, 0)]
 
     rango_x = np.arange(rango1, rango2, 0.1)
-
+    
     if selec == "Newton-Raphson":
         der_ecuacion = diff(ecuacion, x)
         plot_ecuacion(ecuacion, rango_x, puntos, der_ecuacion)
     else:
         plot_ecuacion(ecuacion, rango_x, puntos)
-
 
 def borrar_historial():
     historial.clear()
@@ -108,13 +111,11 @@ def borrar_historial():
 def mostrar_historial_emergente():
     historial_window.deiconify()
     for entry in historial:
-        historial_text_widget.insert(
-            tk.END, f"Ecuación: {entry['ecuacion']}\n")
+        historial_text_widget.insert(tk.END, f"Ecuación: {entry['ecuacion']}\n")
         historial_text_widget.insert(tk.END, f"Puntos: {entry['puntos']}\n")
         historial_text_widget.insert(tk.END, f"Error: {entry['error']}\n")
         historial_text_widget.insert(tk.END, f"Método: {entry['metodo']}\n")
-        historial_text_widget.insert(
-            tk.END, "\n".join(entry['resultados']) + "\n\n")
+        historial_text_widget.insert(tk.END, "\n".join(entry['resultados']) + "\n\n")
 
 
 def llenar_tabla():
@@ -188,7 +189,6 @@ def mostrar_comparacion():
     # Insercion de Datos y obtener la informacion digitada para ser procesada en los metodos
     llenar_tabla()
 
-
 def cargar_historial():
     try:
         with open('historial.txt', 'r') as file:
@@ -215,12 +215,10 @@ def cargar_historial():
                         entry['iteraciones'] = []
                     if 'resultados' not in entry:
                         entry['resultados'] = []
-                    entry['iteraciones' if line.startswith(
-                        'Iteración') else 'resultados'].append(line.strip())
+                    entry['iteraciones' if line.startswith('Iteración') else 'resultados'].append(line.strip())
     except FileNotFoundError:
         # El archivo no existe, no hay historial para cargar
         pass
-
 
 def guardar_historial():
     with open('historial.txt', 'w') as file:
@@ -231,37 +229,38 @@ def guardar_historial():
             file.write(f"Método: {entry['metodo']}\n")
             file.write("\n".join(entry['resultados']) + "\n\n")
 
-
 def cerrar_aplicacion():
     guardar_historial()
     ventana.destroy()
-
 
 def cerrar_historial():
     historial_text_widget.delete("1.0", tk.END)
     historial_window.withdraw()
 
+def actualizar_titulo():
+    titulo_label.config(text=ecuacion_entry.get())
 
 ventana = tk.Tk()
 ventana.title("Calculadora Numérica")
 ventana.resizable(False, False)
 historial = []
 
-# print(tk.TkVersion)
-
 fuente_personalizada = ("Arial", 12)
+
+# Agregar un título centrado
+#Agregar un título centrado y desplazado a la derecha
+titulo_label = ttk.Label(ventana, text="Ecuacion a digitar", font=("Helvetica", 16, "bold"))
+titulo_label.grid(row=0, column=0, columnspan=8, pady=(10, 0), padx=(450, 0)) 
 
 # Definicion de los elementos del Historial
 historial_window = tk.Toplevel(ventana)
 historial_window.title("Historial de Cálculos")
 historial_window.withdraw()
 historial_window.protocol("WM_DELETE_WINDOW", cerrar_historial)
-borrar_button = tk.Button(
-    historial_window, text="Borrar Historial", command=borrar_historial)
+borrar_button = tk.Button(historial_window, text="Borrar Historial", command=borrar_historial, bg="#DCFF00")
 borrar_button.pack(side="top", anchor="nw", pady=10, padx=10)
 
-historial_text_widget = tk.Text(
-    historial_window, wrap="none", height=20, width=80)
+historial_text_widget = tk.Text(historial_window, wrap="none", height=20, width=80)
 scrollbar = tk.Scrollbar(historial_window, command=historial_text_widget.yview)
 historial_text_widget.configure(yscrollcommand=scrollbar.set)
 
@@ -270,12 +269,6 @@ historial_text_widget.configure(yscrollcommand=scrollbar.set)
 ventana_comparacion = tk.Toplevel(ventana)
 ventana_comparacion.title("Comparacion entre metodos")
 ventana_comparacion.resizable(False, False)
-# Obtener las dimensiones de la pantalla
-# ancho_pantalla = ventana_comparacion.winfo_screenwidth()
-# alto_pantalla = ventana_comparacion.winfo_screenheight()
-# # Calcular las coordenadas para centrar la ventana
-# x = (ancho_pantalla - 1200) // 2  # Ancho deseado de la ventana
-# y = (alto_pantalla - 250) // 2   # Alto deseado de la ventana
 
 # ventana_comparacion.geometry("1200x250+{}+{}".format(x, y))
 ventana_comparacion.withdraw()
@@ -290,30 +283,25 @@ scrollbar.pack(side="right", fill="y")
 cargar_historial()
 
 # Configuración de la interfaz
-tk.Label(ventana, text="Ecuación:", font=fuente_personalizada).grid(
-    row=0, column=0, sticky="w")
+tk.Label(ventana, text="Ecuación:", font=fuente_personalizada).grid(row=0, column=0, sticky="w")
 ecuacion_entry = tk.Entry(ventana)
 ecuacion_entry.grid(row=0, column=1, columnspan=3, sticky="w")
 
-tk.Label(ventana, text="Punto izquierdo (a):",
-         font=fuente_personalizada).grid(row=1, column=0, sticky="e")
+tk.Label(ventana, text="Punto izquierdo (a):", font=fuente_personalizada).grid(row=1, column=0, sticky="e")
 a_entry = tk.Entry(ventana, width=10)
 a_entry.grid(row=1, column=1)
 
-tk.Label(ventana, text="Punto derecho (b):",
-         font=fuente_personalizada).grid(row=1, column=2, sticky="e")
+tk.Label(ventana, text="Punto derecho (b):", font=fuente_personalizada).grid(row=1, column=2, sticky="e")
 b_entry = tk.Entry(ventana, width=10)
 b_entry.grid(row=1, column=3)
 
-tk.Label(ventana, text="Error estimado:", font=fuente_personalizada).grid(
-    row=1, column=4, sticky="e")
+tk.Label(ventana, text="Error estimado:", font=fuente_personalizada).grid(row=1, column=4, sticky="e")
 error_entry = tk.Entry(ventana, width=10)
 error_entry.grid(row=1, column=5)
 
-tk.Label(ventana, text="Método numérico:", font=fuente_personalizada).grid(
-    row=2, column=0, sticky="w")
+tk.Label(ventana, text="Método numérico:", font=fuente_personalizada).grid(row=2, column=0, sticky="w")
 metodo_var = tk.StringVar()
-metodo_var.set("Biseccion")
+metodo_var.set("Biseccion") 
 metodo_combobox = ttk.Combobox(
     ventana,
     textvariable=metodo_var,
@@ -322,8 +310,7 @@ metodo_combobox = ttk.Combobox(
 )
 metodo_combobox.grid(row=2, column=1, columnspan=2, sticky="w")
 
-calcular_button = tk.Button(
-    ventana, text="Emular Cálculo", command=emular_calculo)
+calcular_button = tk.Button(ventana, text="Emular Cálculo", command=lambda: [emular_calculo(), actualizar_titulo()],  bg="#08DD22", fg="black")
 calcular_button.grid(row=2, column=3, columnspan=3)
 
 # Configuración de la columna para mostrar la gráfica, iteraciones y resultados
@@ -342,14 +329,19 @@ toolbar_frame.grid(row=6, column=6, columnspan=2, sticky="we")
 
 # Frame para las iteraciones
 iteraciones_frame = ttk.LabelFrame(ventana, text="Iteraciones")
-iteraciones_frame.grid(
-    row=4, column=0, columnspan=6, padx=10, pady=10, sticky="w"
-)  # Movido debajo de los inputs
+iteraciones_frame.grid(row=4, column=0, columnspan=6, padx=10,
+                    pady=10, sticky="w")  # Movido debajo de los inputs
 
 # Widget Text para mostrar iteraciones
 iteraciones_text_widget = tk.Text(
     iteraciones_frame, wrap="none", height=10, width=70)
-iteraciones_text_widget.pack(expand=True, fill="both")
+iteraciones_text_widget.pack(side="left",expand=True, fill='both')
+
+# Barra de desplazamiento vertical para el cuadro de texto de iteraciones
+scrollbar = ttk.Scrollbar(iteraciones_frame, orient="vertical", command=iteraciones_text_widget.yview)
+iteraciones_text_widget.configure(yscrollcommand=scrollbar.set)
+iteraciones_text_widget.pack(side="left", fill="both", expand=True)
+scrollbar.pack(side="right", fill="y")
 
 # Frame para los resultados
 resultados_frame = ttk.LabelFrame(ventana, text="Resultados")
@@ -358,18 +350,26 @@ resultados_frame.grid(
 )  # Movido debajo de los inputs
 
 # Widget Text para mostrar resultados
-resultados_text_widget = tk.Text(
-    resultados_frame, wrap="none", height=10, width=70)
+resultados_text_widget = tk.Text(resultados_frame, wrap="none", height=10, width=70)
 resultados_text_widget.pack(expand=True, fill="both")
 
-historial_button = tk.Button(
-    ventana, text="Mostrar Historial", command=mostrar_historial_emergente)
+historial_button = tk.Button(ventana, text="Mostrar Historial", command=mostrar_historial_emergente, bg="#FFC300")
 historial_button.grid(row=6, column=0, columnspan=2)
 
+ventana.protocol("WM_DELETE_WINDOW", cerrar_aplicacion)
+
+# Botón de ayuda
+emoji = "\u2753"
+ayuda_button = tk.Button(ventana, text=f"Ayuda {emoji}", command=dc.ayuda, bg="blue", fg="white")
+ayuda_button.grid(row=0, column=7, sticky="ne", padx=10, pady=10)
+
 comparacion_button = tk.Button(
-    ventana, text="Comparar Metodos", command=mostrar_comparacion)
+    ventana, text="Comparar Metodos", command=mostrar_comparacion, bg="#FF5733")
 comparacion_button.grid(row=6, column=3, columnspan=2)
 
-ventana.protocol("WM_DELETE_WINDOW", cerrar_aplicacion)
+# Botón de créditos con fondo gris oscuro
+# creditos_button = tk.Button(ventana, text="Créditos", command=mostrar_creditos, bg="#444", fg="white")
+# creditos_button.grid(row=0, column=6, sticky="ne", padx=10, pady=10)
+
 
 ventana.mainloop()
