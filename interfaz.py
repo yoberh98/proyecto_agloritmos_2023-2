@@ -257,7 +257,7 @@ historial_window = tk.Toplevel(ventana)
 historial_window.title("Historial de Cálculos")
 historial_window.withdraw()
 historial_window.protocol("WM_DELETE_WINDOW", cerrar_historial)
-borrar_button = tk.Button(historial_window, text="Borrar Historial", command=borrar_historial, bg="#DCFF00")
+borrar_button = tk.Button(historial_window, text="Borrar Historial", command=borrar_historial, bg="#c1c1c1")
 borrar_button.pack(side="top", anchor="nw", pady=10, padx=10)
 
 historial_text_widget = tk.Text(historial_window, wrap="none", height=20, width=80)
@@ -310,7 +310,7 @@ metodo_combobox = ttk.Combobox(
 )
 metodo_combobox.grid(row=2, column=1, columnspan=2, sticky="w")
 
-calcular_button = tk.Button(ventana, text="Emular Cálculo", command=lambda: [emular_calculo(), actualizar_titulo()],  bg="#08DD22", fg="black")
+calcular_button = tk.Button(ventana, text="Emular Cálculo", command=lambda: [emular_calculo(), actualizar_titulo()],  bg="#c1c1c1", fg="black")
 calcular_button.grid(row=2, column=3, columnspan=3)
 
 # Configuración de la columna para mostrar la gráfica, iteraciones y resultados
@@ -353,18 +353,18 @@ resultados_frame.grid(
 resultados_text_widget = tk.Text(resultados_frame, wrap="none", height=10, width=70)
 resultados_text_widget.pack(expand=True, fill="both")
 
-historial_button = tk.Button(ventana, text="Mostrar Historial", command=mostrar_historial_emergente, bg="#FFC300")
+historial_button = tk.Button(ventana, text="Mostrar Historial", command=mostrar_historial_emergente, bg="#c1c1c1")
 historial_button.grid(row=6, column=0, columnspan=2)
 
 ventana.protocol("WM_DELETE_WINDOW", cerrar_aplicacion)
 
 # Botón de ayuda
 emoji = "\u2753"
-ayuda_button = tk.Button(ventana, text=f"Ayuda {emoji}", command=dc.ayuda, bg="blue", fg="white")
+ayuda_button = tk.Button(ventana, text=f"Ayuda {emoji}", command=dc.ayuda, bg="#c1c1c1")
 ayuda_button.grid(row=0, column=7, sticky="ne", padx=10, pady=10)
 
 comparacion_button = tk.Button(
-    ventana, text="Comparar Metodos", command=mostrar_comparacion, bg="#FF5733")
+    ventana, text="Comparar Metodos", command=mostrar_comparacion, bg="#c1c1c1")
 comparacion_button.grid(row=6, column=3, columnspan=2)
 
 # Botón de créditos con fondo gris oscuro
